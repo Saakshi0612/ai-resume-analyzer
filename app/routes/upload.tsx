@@ -19,7 +19,6 @@ const upload = () => {
         setFile(file);
     }
 
-    // ✅ Added `async` and the opening `{` brace
     const handleAnalyze = async ({ companyName, jobTitle, jobDescription, file }: { companyName: string, jobTitle: string, jobDescription: string, file: File }) => {
         setIsProcessing(true);
         setStatusText('Uploading the file...');
@@ -51,11 +50,16 @@ const upload = () => {
         )
 
         if (!feedback) return setStatusText('Error: Failed to analyze resume');
+        
         const feedbackText = typeof feedback.message.content === 'string'
             ? feedback.message.content
             : feedback.message.content[0].text;
 
-        data.feedback = JSON.parse(feedbackText);
+        // Strip markdown code fences if present, then parse JSON
+        const jsonMatch = feedbackText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) return setStatusText('Error: Could not parse feedback response');
+        
+        data.feedback = JSON.parse(jsonMatch[0]);
         await kv.set(`resume:${uuid}`, JSON.stringify(data));
         setStatusText('Analysis complete, redirecting...');
         console.log(data);
